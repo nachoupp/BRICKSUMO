@@ -28,6 +28,7 @@
     ],
     "scripts": {
         "build": "tsc -p tsconfig.build.json",
+        "build:site": "node scripts/check-site.mjs",
         "check:no-storage": "node scripts/check-no-storage.mjs",
         "cli": "tsx src/cli/main.ts",
         "lint": "eslint .",

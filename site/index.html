@@ -1,0 +1,220 @@
+<!doctype html>
+<html lang="es">
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <title>BRICKSUMO · Estado del proyecto</title>
+        <meta
+            name="description"
+            content="Panel de estado de BRICKSUMO: capa de comunicación Pybricks para hubs LEGO."
+        />
+        <meta name="theme-color" content="#0c1014" />
+        <link rel="icon" href="./favicon.svg" type="image/svg+xml" />
+        <link rel="stylesheet" href="./styles.css" />
+    </head>
+    <body>
+        <div class="page">
+            <header class="hero">
+                <div class="brand">
+                    <div class="logo" aria-hidden="true">B</div>
+                    <div>
+                        <p class="eyebrow">Capa de comunicación Pybricks</p>
+                        <h1>BRICKSUMO</h1>
+                    </div>
+                </div>
+
+                <p class="lead">
+                    Protocolo, transportes y firmware para hubs LEGO con Pybricks.
+                    Primero la base técnica; la interfaz llega después.
+                </p>
+
+                <div class="hero-actions">
+                    <a
+                        class="button primary"
+                        href="https://github.com/nachoupp/BRICKSUMO"
+                        rel="noreferrer"
+                        >Ver repositorio</a
+                    >
+                    <a class="button ghost" href="#estado">Estado de verificación</a>
+                </div>
+
+                <div class="badge-row" aria-label="Resumen del proyecto">
+                    <span class="badge live">Base verificada</span>
+                    <span class="badge">v0.1.0</span>
+                    <span class="badge">Sin almacenamiento local</span>
+                </div>
+            </header>
+
+            <main>
+                <section id="estado" class="panel" aria-labelledby="estado-title">
+                    <div class="section-head">
+                        <div>
+                            <p class="section-kicker">Verificación</p>
+                            <h2 id="estado-title">Lo que ya está comprobado</h2>
+                        </div>
+                        <p class="section-note">
+                            Última ejecución local de <code>npm run verify</code>.
+                        </p>
+                    </div>
+
+                    <div class="checks">
+                        <div class="check">
+                            <span class="dot ok" aria-hidden="true"></span>
+                            <div>
+                                <strong>Escaneo anti-almacenamiento</strong>
+                                <span><code>src/</code> sin localStorage, sessionStorage ni indexedDB</span>
+                            </div>
+                        </div>
+                        <div class="check">
+                            <span class="dot ok" aria-hidden="true"></span>
+                            <div>
+                                <strong>TypeScript estricto</strong>
+                                <span>Typecheck sin errores</span>
+                            </div>
+                        </div>
+                        <div class="check">
+                            <span class="dot ok" aria-hidden="true"></span>
+                            <div>
+                                <strong>ESLint</strong>
+                                <span>Sin errores ni advertencias</span>
+                            </div>
+                        </div>
+                        <div class="check">
+                            <span class="dot ok" aria-hidden="true"></span>
+                            <div>
+                                <strong>Tests</strong>
+                                <span>96 pruebas en 10 archivos</span>
+                            </div>
+                        </div>
+                        <div class="check">
+                            <span class="dot ok" aria-hidden="true"></span>
+                            <div>
+                                <strong>Build</strong>
+                                <span><code>dist/</code> generado correctamente</span>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <section class="grid" aria-label="Módulos de la capa de comunicación">
+                    <article class="card">
+                        <p class="card-kicker">01 · Núcleo</p>
+                        <h3>Protocolo puro</h3>
+                        <p>
+                            Comandos y eventos BLE, NUS antiguo, LWP3, framing USB,
+                            Multi-MPY6 y checksums.
+                        </p>
+                        <span class="status done">Implementado</span>
+                    </article>
+
+                    <article class="card">
+                        <p class="card-kicker">02 · Sesión</p>
+                        <h3>HubSession</h3>
+                        <p>
+                            Descarga moderna y legacy, arranque por slot, REPL, stdin,
+                            AppData y estado del hub.
+                        </p>
+                        <span class="status done">Implementado</span>
+                    </article>
+
+                    <article class="card">
+                        <p class="card-kicker">03 · Firmware</p>
+                        <h3>ZIP y flasheo</h3>
+                        <p>
+                            Lectura de firmware oficial v2, ensamblado de imagen y
+                            orquestación LWP3 con verificación de checksums.
+                        </p>
+                        <span class="status done">Implementado</span>
+                    </article>
+
+                    <article class="card">
+                        <p class="card-kicker">04 · Hardware</p>
+                        <h3>Web Bluetooth / USB</h3>
+                        <p>
+                            Adaptadores aislados para navegador. No se activan por
+                            defecto hasta validarlos con hubs reales.
+                        </p>
+                        <span class="status pending">Experimental</span>
+                    </article>
+                </section>
+
+                <section class="panel roadmap" aria-labelledby="roadmap-title">
+                    <div class="section-head">
+                        <div>
+                            <p class="section-kicker">Roadmap</p>
+                            <h2 id="roadmap-title">Qué sigue</h2>
+                        </div>
+                    </div>
+
+                    <ol class="timeline">
+                        <li class="done">
+                            <span class="timeline-dot" aria-hidden="true"></span>
+                            <div>
+                                <strong>Núcleo y sesión</strong>
+                                <p>
+                                    Protocolo, transportes falsos y flujos de programa
+                                    verificados sin hardware.
+                                </p>
+                            </div>
+                        </li>
+                        <li class="current">
+                            <span class="timeline-dot" aria-hidden="true"></span>
+                            <div>
+                                <strong>Documentación y adaptadores</strong>
+                                <p>
+                                    Protocolo, arquitectura, validación física y
+                                    adaptadores de navegador aislados.
+                                </p>
+                            </div>
+                        </li>
+                        <li>
+                            <span class="timeline-dot" aria-hidden="true"></span>
+                            <div>
+                                <strong>Validación con hardware</strong>
+                                <p>
+                                    Probar BLE, USB y DFU en hubs reales antes de
+                                    habilitarlos en la ruta por defecto.
+                                </p>
+                            </div>
+                        </li>
+                        <li>
+                            <span class="timeline-dot" aria-hidden="true"></span>
+                            <div>
+                                <strong>Interfaz de usuario</strong>
+                                <p>
+                                    La app BRICKSUMO completa, construida sobre esta
+                                    capa de comunicación.
+                                </p>
+                            </div>
+                        </li>
+                    </ol>
+                </section>
+
+                <section class="panel note" aria-labelledby="note-title">
+                    <p class="section-kicker">Aclaración</p>
+                    <h2 id="note-title">Esta página no es la app</h2>
+                    <p>
+                        Es un panel de estado del proyecto. La interfaz de usuario de
+                        BRICKSUMO se construirá sobre esta capa cuando el protocolo y
+                        los transportes estén validados con hardware real.
+                    </p>
+                </section>
+            </main>
+
+            <footer>
+                <p>
+                    BRICKSUMO · proyecto independiente, no afiliado a LEGO Group ni
+                    al proyecto Pybricks.
+                </p>
+                <p class="footer-meta">
+                    <span id="year">2026</span> · Licencia MIT ·
+                    <a href="https://github.com/nachoupp/BRICKSUMO" rel="noreferrer"
+                        >GitHub</a
+                    >
+                </p>
+            </footer>
+        </div>
+
+        <script src="./main.js" defer></script>
+    </body>
+</html>
