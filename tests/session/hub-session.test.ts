@@ -9,7 +9,11 @@ import {
     createWriteUserRamCommand,
     statusToFlag,
 } from '../../src/protocol/ble-pybricks.js';
-import { readUint32LE } from '../../src/protocol/bytes.js';
+import {
+    readUint32LE,
+    utf8Decode,
+    utf8Encode,
+} from '../../src/protocol/bytes.js';
 import { HubSession } from '../../src/session/hub-session.js';
 import { FakePybricksTransport } from '../../src/transport/fake-pybricks.js';
 
@@ -165,6 +169,22 @@ describe('HubSession · descarga NUS antigua', () => {
         await expect(session.uploadProgram(makeProgram(10))).rejects.toThrow(
             /NUS/,
         );
+    });
+
+    it('emite stdout legacy por NUS sin confundirlo con checksums', async () => {
+        const fake = new FakePybricksTransport({ profileVersion: '1.1.0' });
+        const session = new HubSession(fake);
+        const stdout: string[] = [];
+        session.onEvent((event) => {
+            if (event.type === 'stdout') {
+                stdout.push(utf8Decode(event.data));
+            }
+        });
+
+        await session.uploadProgram(makeProgram(10));
+        fake.legacyNus?.emitData(utf8Encode('hola'));
+
+        expect(stdout).toEqual(['hola']);
     });
 });
 

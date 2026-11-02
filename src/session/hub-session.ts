@@ -68,6 +68,8 @@ export class HubSession {
     private readonly onProtocolError: ((error: Error) => void) | undefined;
     private readonly legacyUploadOptions: LegacyUploadOptions | undefined;
     private readonly unsubscribeTransport: Unsubscribe;
+    private readonly unsubscribeLegacyData: Unsubscribe | undefined;
+    private legacyUploading = false;
     private stateValue: HubSessionState = {
         runningProgramId: 0,
         selectedSlot: 0,
@@ -89,6 +91,7 @@ export class HubSession {
         this.unsubscribeTransport = transport.onEvent((data) => {
             this.handleEvent(data);
         });
+        this.unsubscribeLegacyData = this.subscribeLegacyStdio(transport);
     }
 
     /** Último estado conocido del hub. */
@@ -130,12 +133,17 @@ export class HubSession {
                     'el hub requiere descarga NUS, pero el transporte no la ofrece',
                 );
             }
-            await uploadLegacyProgram(legacy, program, {
-                ...this.legacyUploadOptions,
-                ...(options.onProgress === undefined
-                    ? {}
-                    : { onProgress: options.onProgress }),
-            });
+            this.legacyUploading = true;
+            try {
+                await uploadLegacyProgram(legacy, program, {
+                    ...this.legacyUploadOptions,
+                    ...(options.onProgress === undefined
+                        ? {}
+                        : { onProgress: options.onProgress }),
+                });
+            } finally {
+                this.legacyUploading = false;
+            }
             return { mode: 'legacy', bytes: program.byteLength, slot: 0 };
         }
 
@@ -278,8 +286,34 @@ export class HubSession {
     /** Cierra la sesión y el transporte. */
     async disconnect(): Promise<void> {
         this.unsubscribeTransport();
+        this.unsubscribeLegacyData?.();
         this.listeners.clear();
         await this.transport.disconnect();
+    }
+
+    private subscribeLegacyStdio(
+        transport: PybricksTransport,
+    ): Unsubscribe | undefined {
+        if (!this.features.usesLegacyStdio) {
+            return undefined;
+        }
+        const legacy = transport.legacyNus;
+        if (legacy?.onData === undefined) {
+            return undefined;
+        }
+        return legacy.onData((data) => {
+            if (this.legacyUploading) {
+                // Durante la descarga NUS, los bytes de un byte son checksums.
+                return;
+            }
+            this.emitEvent({ type: 'stdout', data: data.slice() });
+        });
+    }
+
+    private emitEvent(event: PybricksEvent): void {
+        for (const listener of this.listeners) {
+            listener(event);
+        }
     }
 
     private handleEvent(data: Uint8Array): void {
@@ -288,9 +322,7 @@ export class HubSession {
             if (event.type === 'status') {
                 this.updateStatus(event);
             }
-            for (const listener of this.listeners) {
-                listener(event);
-            }
+            this.emitEvent(event);
         } catch (error) {
             const normalized =
                 error instanceof Error ? error : new Error(String(error));

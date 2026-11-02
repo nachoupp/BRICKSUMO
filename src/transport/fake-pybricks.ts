@@ -380,6 +380,7 @@ export class FakePybricksTransport implements PybricksTransport {
 /** Canal NUS falso. */
 export class FakeLegacyNusTransport implements LegacyNusTransport {
     private readonly listeners = new Set<(checksum: number) => void>();
+    private readonly dataListeners = new Set<(data: Uint8Array) => void>();
     private readonly chunks: Uint8Array[] = [];
     private readonly rawWrites: Uint8Array[] = [];
     private phase: 'size' | 'payload' = 'size';
@@ -448,15 +449,33 @@ export class FakeLegacyNusTransport implements LegacyNusTransport {
         };
     }
 
+    onData(listener: (data: Uint8Array) => void): Unsubscribe {
+        this.dataListeners.add(listener);
+        return () => {
+            this.dataListeners.delete(listener);
+        };
+    }
+
     emitChecksum(checksum: number): void {
         for (const listener of this.listeners) {
             listener(checksum);
+        }
+        // El canal real entrega todas las notificaciones; el checksum también
+        // es un byte de datos. La sesión lo ignora mientras dura la descarga.
+        this.emitData(new Uint8Array([checksum]));
+    }
+
+    /** Simula stdout legacy por NUS. */
+    emitData(data: Uint8Array): void {
+        for (const listener of this.dataListeners) {
+            listener(data.slice());
         }
     }
 
     close(): void {
         this.closed = true;
         this.listeners.clear();
+        this.dataListeners.clear();
     }
 
     /** Bloques lógicos enviados, para aserciones. */

@@ -29,6 +29,12 @@ export interface LegacyNusTransport {
     writeChunk(data: Uint8Array): Promise<void>;
     writeRaw(data: Uint8Array): Promise<void>;
     onChecksum(listener: (checksum: number) => void): Unsubscribe;
+    /**
+     * Recibe todas las notificaciones NUS. En perfiles anteriores a 1.3.0
+     * stdout viaja por este canal. Es opcional para transportes que sólo
+     * implementan la descarga.
+     */
+    onData?(listener: (data: Uint8Array) => void): Unsubscribe;
 }
 
 /** Transporte de comandos Pybricks (BLE o USB). */
