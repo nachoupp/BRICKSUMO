@@ -28,7 +28,7 @@
     ],
     "scripts": {
         "build": "tsc -p tsconfig.build.json",
-        "build:site": "node scripts/check-site.mjs",
+        "build:site": "node scripts/check-site.mjs && vite build --config vite.site.config.mjs",
         "check:no-storage": "node scripts/check-no-storage.mjs",
         "cli": "tsx src/cli/main.ts",
         "lint": "eslint .",
@@ -39,6 +39,7 @@
     },
     "dependencies": {
         "@pybricks/firmware": "7.27.0",
+        "@pybricks/mpy-cross-v6": "2.0.0",
         "dfu": "0.1.5"
     },
     "devDependencies": {

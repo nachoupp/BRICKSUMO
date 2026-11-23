@@ -1,0 +1,37 @@
+:root {
+    color-scheme: dark;
+    --fondo: #0e1220;
+    --panel: #171c2e;
+    --borde: #2a3050;
+    --texto: #eef1fa;
+    --suave: #9aa3bd;
+    --lima: #b8f23a;
+    --naranja: #ff8a3d;
+    font-family: Inter, system-ui, sans-serif;
+}
+body { margin: 0; background: var(--fondo); color: var(--texto); }
+.banco { max-width: 860px; margin: 0 auto; padding: 24px 16px 48px; display: flex; flex-direction: column; gap: 16px; }
+.cabecera { display: flex; justify-content: space-between; align-items: end; gap: 16px; flex-wrap: wrap; }
+.etiqueta { margin: 0; font-size: 12px; letter-spacing: 2px; color: var(--suave); }
+h1 { margin: 4px 0 0; font-size: 28px; }
+h2 { margin: 0 0 12px; font-size: 18px; }
+a { color: var(--lima); }
+.tarjeta { background: var(--panel); border: 1px solid var(--borde); border-radius: 16px; padding: 16px; display: flex; flex-direction: column; gap: 10px; }
+.fila { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+button { min-height: 44px; padding: 0 18px; border-radius: 12px; border: 0; background: var(--lima); color: var(--fondo); font: 600 15px Inter, system-ui, sans-serif; cursor: pointer; }
+button.secundario { background: transparent; color: var(--texto); border: 2px solid var(--borde); }
+button:disabled { opacity: 0.45; cursor: not-allowed; }
+label { color: var(--suave); font-size: 14px; }
+textarea, input { background: #0b0f1b; color: var(--texto); border: 1px solid var(--borde); border-radius: 10px; font: 14px/1.45 "JetBrains Mono", ui-monospace, monospace; padding: 10px; }
+textarea { width: 100%; box-sizing: border-box; resize: vertical; }
+input { flex: 1; min-width: 200px; min-height: 44px; box-sizing: border-box; }
+.salida { margin: 0; min-height: 200px; max-height: 360px; overflow: auto; background: #0b0f1b; border: 1px solid var(--borde); border-radius: 10px; padding: 10px; font: 13px/1.45 "JetBrains Mono", ui-monospace, monospace; white-space: pre-wrap; }
+.datos { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 8px; margin: 0; }
+.datos div { background: #0b0f1b; border-radius: 10px; padding: 8px 10px; }
+.datos dt { font-size: 12px; color: var(--suave); }
+.datos dd { margin: 2px 0 0; font-weight: 600; }
+.nota { color: var(--suave); font-size: 14px; }
+.aviso { background: #3a2412; border: 1px solid var(--naranja); border-radius: 12px; padding: 12px; margin: 0; }
+.oculto { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+.err { color: var(--naranja); }
+.sis { color: var(--suave); }

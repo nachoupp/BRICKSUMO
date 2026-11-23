@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="es">
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <title>BRICKSUMO · Banco de pruebas</title>
+        <meta name="description" content="Conecta un hub Pybricks, envía un programa y usa su consola." />
+        <link rel="icon" href="../favicon.svg" type="image/svg+xml" />
+        <link rel="stylesheet" href="./banco.css" />
+    </head>
+    <body>
+        <main class="banco">
+            <header class="cabecera">
+                <div>
+                    <p class="etiqueta">BRICKSUMO</p>
+                    <h1>Banco de pruebas</h1>
+                </div>
+                <a href="../">Volver a la portada</a>
+            </header>
+
+            <p id="aviso-navegador" class="aviso" hidden>
+                Este navegador no tiene Web Bluetooth. Usa Chrome o Edge en un Chromebook,
+                Windows, Mac o Android.
+            </p>
+
+            <section class="tarjeta" aria-labelledby="t-hub">
+                <h2 id="t-hub">1 · Hub</h2>
+                <div class="fila">
+                    <button id="conectar" type="button">Conectar</button>
+                    <button id="desconectar" type="button" class="secundario" disabled>
+                        Desconectar
+                    </button>
+                </div>
+                <dl class="datos">
+                    <div><dt>Hub</dt><dd id="hub-nombre">—</dd></div>
+                    <div><dt>Firmware</dt><dd id="hub-firmware">—</dd></div>
+                    <div><dt>Programa</dt><dd id="hub-programa">—</dd></div>
+                    <div><dt>Batería</dt><dd id="hub-bateria">—</dd></div>
+                </dl>
+            </section>
+
+            <section class="tarjeta" aria-labelledby="t-programa">
+                <h2 id="t-programa">2 · Programa</h2>
+                <label for="codigo">Pega aquí el programa Python (por ejemplo, sumo_master_v2.py)</label>
+                <textarea id="codigo" spellcheck="false" rows="14">from pybricks.hubs import PrimeHub
+from pybricks.tools import wait
+
+hub = PrimeHub()
+print("Hola desde el hub")
+hub.display.text("HOLA")
+wait(500)
+</textarea>
+                <div class="fila">
+                    <button id="enviar" type="button" disabled>Enviar y ejecutar</button>
+                    <button id="parar" type="button" class="secundario" disabled>Parar</button>
+                    <span id="progreso" class="nota" aria-live="polite"></span>
+                </div>
+            </section>
+
+            <section class="tarjeta" aria-labelledby="t-consola">
+                <h2 id="t-consola">3 · Consola</h2>
+                <pre id="salida" class="salida" aria-live="polite"></pre>
+                <form id="form-orden" class="fila">
+                    <label for="orden" class="oculto">Orden para el hub</label>
+                    <input id="orden" type="text" autocomplete="off" placeholder="Escribe una orden, por ejemplo AYUDA" disabled />
+                    <button id="mandar" type="submit" disabled>Enviar orden</button>
+                    <button id="limpiar" type="button" class="secundario">Limpiar</button>
+                </form>
+            </section>
+        </main>
+        <script type="module" src="./banco.js"></script>
+    </body>
+</html>
