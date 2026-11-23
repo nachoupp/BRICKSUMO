@@ -208,7 +208,7 @@ async function mandarOrden(evento) {
         return;
     }
     ui.orden.value = '';
-    escribir(`> ${texto}\n`, 'sis');
+    // Sin eco local: el programa del hub repite la orden al recibirla ("> ...").
     const datos = encoder.encode(`${texto}\n`);
     // Cada envío tiene un tamaño máximo; se trocea por si la orden es larga.
     const maximo = Math.max(1, (session.info.capabilities?.maxWriteSize ?? 20) - 1);

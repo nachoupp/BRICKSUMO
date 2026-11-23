@@ -164,40 +164,41 @@ from uselect import poll
 import ustruct
 
 # ---------------- TABLA DE RANGOS SEGUROS ----------------
-# nombre: (mínimo, máximo, unidad, qué hace, ¿necesita reiniciar?)
-# Esta tabla vigila los números de la consola y la usan la terminal y la app.
-RANGOS = {
-    "TIPO_DE_BOT":          (1, 2, "", "1 = martillo, 2 = elevador y pala", True),
-    "MARCHA_1":             (50, 1000, "mm/s", "marcha 1: precisión", False),
-    "MARCHA_2":             (50, 1000, "mm/s", "marcha 2: normal", False),
-    "MARCHA_3":             (50, 1000, "mm/s", "marcha 3: ¡ataque!", False),
-    "ACELERACION":          (100, 1000, "mm/s²", "aceleración de las ruedas", False),
-    "OPERAR_TUMBADO":       (0, 1, "", "¿se mueven las ruedas si está volcado?", False),
-    "VELOCIDAD_GOLPE":      (500, 1000, "deg/s", "rapidez del martillo", False),
-    "ANGULO_GOLPE":         (45, 180, "deg", "recorrido del martillo", False),
-    "VELOCIDAD_ELEVADOR":   (100, 800, "deg/s", "velocidad del elevador", False),
-    "VELOCIDAD_PALA":       (100, 800, "deg/s", "velocidad de la pala", False),
-    "LIFT_HIGH_POS":        (0, 350, "deg", "elevador arriba", False),
-    "LIFT_LOW_POS":         (0, 350, "deg", "elevador abajo", False),
-    "SCOOP_READY_POS":      (-100, 50, "deg", "pala lista", False),
-    "SCOOP_DUMP_POS":       (-100, 50, "deg", "pala volcando", False),
-    "TIEMPO_ARRIBA":        (0, 2000, "ms", "tiempo con el elevador arriba", False),
-    "USA_SENSOR_SUELO":     (0, 1, "", "¿hay sensor de color en el puerto B?", True),
-    "MODO_BORDE":           (1, 2, "", "1 = por luz, 2 = por color blanco", False),
-    "UMBRAL_LUZ_BORDE":     (10, 90, "%", "luz a partir de la que hay borde", False),
-    "M2_ANGULO_EVASION":    (45, 360, "deg", "giro de evasión (modo naranja)", False),
-    "M3_DISTANCIA_ATAQUE":  (50, 500, "mm", "golpe automático (modo magenta)", False),
-    "M3_VELOCIDAD_ESCANEO": (50, 800, "deg/s", "giro al escanear (modo magenta)", False),
-    "M3_PITIDO_SONAR":      (0, 1, "", "¿pita el radar?", False),
-    "M4_TIPO_HACK":         (1, 3, "", "1 = sacudida, 2 = baile, 3 = congelar", False),
-    "VOLUMEN_GENERAL":      (0, 10, "", "volumen del altavoz", False),
-    "PITIDO_INGENIERO":     (0, 1, "", "¿pita al entrar en modo ingeniero?", False),
-    "SEGUNDOS_KO":          (3, 20, "s", "cuenta atrás al volcar", False),
-}
+# (nombre, mínimo, máximo, unidad, qué hace, ¿necesita reiniciar?)
+# Es una lista para conservar el orden de la consola. Esta tabla vigila los números de la consola y la usan la terminal y la app.
+RANGOS = [
+    ("TIPO_DE_BOT",           1, 2, "", "1 = martillo, 2 = elevador y pala", True),
+    ("MARCHA_1",              50, 1000, "mm/s", "marcha 1: precisión", False),
+    ("MARCHA_2",              50, 1000, "mm/s", "marcha 2: normal", False),
+    ("MARCHA_3",              50, 1000, "mm/s", "marcha 3: ¡ataque!", False),
+    ("ACELERACION",           100, 1000, "mm/s²", "aceleración de las ruedas", False),
+    ("OPERAR_TUMBADO",        0, 1, "", "¿se mueven las ruedas si está volcado?", False),
+    ("VELOCIDAD_GOLPE",       500, 1000, "deg/s", "rapidez del martillo", False),
+    ("ANGULO_GOLPE",          45, 180, "deg", "recorrido del martillo", False),
+    ("VELOCIDAD_ELEVADOR",    100, 800, "deg/s", "velocidad del elevador", False),
+    ("VELOCIDAD_PALA",        100, 800, "deg/s", "velocidad de la pala", False),
+    ("LIFT_HIGH_POS",         0, 350, "deg", "elevador arriba", False),
+    ("LIFT_LOW_POS",          0, 350, "deg", "elevador abajo", False),
+    ("SCOOP_READY_POS",       -100, 50, "deg", "pala lista", False),
+    ("SCOOP_DUMP_POS",        -100, 50, "deg", "pala volcando", False),
+    ("TIEMPO_ARRIBA",         0, 2000, "ms", "tiempo con el elevador arriba", False),
+    ("USA_SENSOR_SUELO",      0, 1, "", "¿hay sensor de color en el puerto B?", True),
+    ("MODO_BORDE",            1, 2, "", "1 = por luz, 2 = por color blanco", False),
+    ("UMBRAL_LUZ_BORDE",      10, 90, "%", "luz a partir de la que hay borde", False),
+    ("M2_ANGULO_EVASION",     45, 360, "deg", "giro de evasión (modo naranja)", False),
+    ("M3_DISTANCIA_ATAQUE",   50, 500, "mm", "golpe automático (modo magenta)", False),
+    ("M3_VELOCIDAD_ESCANEO",  50, 800, "deg/s", "giro al escanear (modo magenta)", False),
+    ("M3_PITIDO_SONAR",       0, 1, "", "¿pita el radar?", False),
+    ("M4_TIPO_HACK",          1, 3, "", "1 = sacudida, 2 = baile, 3 = congelar", False),
+    ("VOLUMEN_GENERAL",       0, 10, "", "volumen del altavoz", False),
+    ("PITIDO_INGENIERO",      0, 1, "", "¿pita al entrar en modo ingeniero?", False),
+    ("SEGUNDOS_KO",           3, 20, "s", "cuenta atrás al volcar", False),
+]
 
 # Une cada número de la consola con su rango: AJUSTES[nombre] = [valor, mín, máx, unidad, texto, reinicio]
 _consola = globals()
-AJUSTES = {n: [_consola[n]] + list(r) for n, r in RANGOS.items()}
+AJUSTES = {r[0]: [_consola[r[0]]] + list(r[1:]) for r in RANGOS}
+NOMBRES = [r[0] for r in RANGOS]           # orden fijo: el de la consola de arriba
 
 # Datos fijos del robot (no cambian en marcha)
 DIAMETRO_RUEDA  = 56               # mm
@@ -221,9 +222,8 @@ ORIGINALES = {n: d[0] for n, d in AJUSTES.items()}    # para RESET
 # ==============================================================================
 hub = PrimeHub(broadcast_channel=CANAL_BROADCAST, observe_channels=[CANAL_BROADCAST])
 
-NOMBRES = list(AJUSTES)
 FORMATO = "<" + "h" * (len(NOMBRES) + 2)     # firma + huella + un entero por ajuste
-FIRMA = 8000 + len(NOMBRES)                  # cambia sola si añades o quitas ajustes
+FIRMA = 8100 + len(NOMBRES)                  # cambia sola si añades o quitas ajustes
 
 def huella():
     """Resumen de los números escritos en la consola de arriba.
