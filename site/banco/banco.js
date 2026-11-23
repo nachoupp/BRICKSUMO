@@ -27,6 +27,7 @@ const ui = {
     orden: $('orden'),
     mandar: $('mandar'),
     limpiar: $('limpiar'),
+    copiar: $('copiar'),
     nombre: $('hub-nombre'),
     firmware: $('hub-firmware'),
     programa: $('hub-programa'),
@@ -47,6 +48,8 @@ function escribir(texto, clase) {
     }
     linea.textContent = texto;
     ui.salida.append(linea);
+    // Copia en la consola del navegador, para poder revisarla desde las herramientas de Chrome.
+    console.log('[BRICKSUMO]', texto.replace(/\n$/, ''));
     ui.salida.scrollTop = ui.salida.scrollHeight;
 }
 
@@ -232,4 +235,10 @@ if (!('bluetooth' in navigator)) {
 }
 ui.limpiar.addEventListener('click', () => {
     ui.salida.textContent = '';
+});
+ui.copiar.addEventListener('click', () => {
+    navigator.clipboard
+        .writeText(ui.salida.textContent ?? '')
+        .then(() => sistema('Registro copiado: pégalo en el chat.'))
+        .catch(() => error('No se pudo copiar el registro.'));
 });
