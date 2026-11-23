@@ -321,6 +321,11 @@ teclado.register(stdin)
 linea = ""
 telemetria = False
 
+# --- Mando desde la app (joystick y botones) ---
+HOMBRE_MUERTO = 500                          # ms sin órdenes J -> el robot se para
+app_avance = app_giro = 0                    # -100..100 % (orden J)
+reloj_app = StopWatch()
+
 def describir(n):
     v, mn, mx, unidad, texto, reinicio = AJUSTES[n]
     return "A {}={} min={} max={} unidad={} reinicio={} | {}".format(
@@ -328,13 +333,14 @@ def describir(n):
 
 def ejecutar(orden):
     """Interpreta una línea de texto. Responde siempre con OK o ERR."""
-    global telemetria
+    global telemetria, app_avance, app_giro, marcha_actual
     partes = orden.upper().split()
     if not partes:
         return
     cmd = partes[0]
     if cmd in ("AYUDA", "?"):
         print("OK órdenes: GET | SET NOMBRE VALOR | SAVE | LOAD | RESET | DESC | TEL ON/OFF | GOLPE | MODO 1-4")
+        print("OK app: J avance giro (-100..100, se para si no llega otra en 0,5 s) | B1 golpe | B2 modo | B3 especial | B4 marcha")
     elif cmd == "GET":
         print("OK " + " ".join("{}={}".format(n, aj(n)) for n in NOMBRES))
     elif cmd == "DESC":                      # la app lo usa para crear los deslizadores
@@ -372,6 +378,28 @@ def ejecutar(orden):
         print("OK telemetría", "activada" if telemetria else "desactivada")
     elif cmd == "GOLPE":
         accionar_arma(); print("OK arma")
+    elif cmd == "J" and len(partes) == 3:   # joystick de la app: sin respuesta, llega 10-20 veces/s
+        try:
+            app_avance = max(-100, min(100, int(partes[1])))
+            app_giro = max(-100, min(100, int(partes[2])))
+            reloj_app.reset()
+        except ValueError:
+            print("ERR J necesita dos números enteros")
+    elif cmd == "B1":                        # botón GOLPE de la app
+        accionar_arma(); print("OK golpe")
+    elif cmd == "B2":                        # botón MODO de la app
+        set_modo(modo_actual % 4 + 1); print("OK modo", NOMBRES_MODO[modo_actual - 1])
+    elif cmd == "B3":                        # botón ESPECIAL: depende del modo
+        if modo_actual == 2:
+            evadir(); print("OK evasion")
+        elif modo_actual == 4:
+            lanzar_hack()
+        else:
+            print("OK B3 no hace nada en este modo")
+    elif cmd == "B4":                        # botón MARCHA de la app
+        marcha_actual = marcha_actual % 3 + 1
+        hub.speaker.beep(500 + marcha_actual * 200, 100)
+        print("OK marcha", marcha_actual)
     elif cmd == "MODO" and len(partes) == 2 and partes[1] in ("1", "2", "3", "4"):
         set_modo(int(partes[1])); print("OK modo", NOMBRES_MODO[modo_actual - 1])
     else:
@@ -384,7 +412,8 @@ def leer_consola():
         c = stdin.read(1)
         if c in ("\r", "\n"):
             if linea:
-                print(">", linea)            # eco de lo recibido
+                if not linea.upper().startswith("J "):
+                    print(">", linea)        # eco de lo recibido (no del joystick: llega muchas veces)
                 ejecutar(linea)
             linea = ""
         elif len(linea) < 60:
@@ -550,6 +579,22 @@ def set_modo(n):
     except (OSError, AttributeError):
         pass                                 # mando desconectado
 
+def evadir():
+    """Giro de evasión sin bloquear (modo naranja)."""
+    global girando
+    db.turn(aj("M2_ANGULO_EVASION"), wait=False)
+    girando = True
+
+def lanzar_hack():
+    """Envía el castigo a los robots cercanos y vuelve al modo verde."""
+    hack = "HACK_" + str(aj("M4_TIPO_HACK"))
+    print("OK lanzando", hack, "por el canal", CANAL_BROADCAST)
+    hub.ble.broadcast(hack)
+    hub.speaker.beep(2500, 200)
+    wait(300)                                # tiempo para que lo reciban
+    hub.ble.broadcast("ONLINE")
+    set_modo(1)                              # vuelve al verde
+
 # Esperar al mando (la consola ya funciona del todo mientras tanto)
 hub.display.char("C")                        # C = conectando: pulsa el botón verde del mando
 print("OK esperando el mando... (escribe AYUDA)")
@@ -628,6 +673,11 @@ while True:
     if Button.RIGHT_PLUS in botones:   giro = v
     elif Button.RIGHT_MINUS in botones: giro = -v
 
+    # 6b. JOYSTICK DE LA APP (si el mando LEGO no se está usando)
+    if not (velocidad or giro) and reloj_app.time() < HOMBRE_MUERTO:
+        velocidad = app_avance * v // 100
+        giro = app_giro * v // 100
+
     # 7. LÓGICA DE CADA MODO
     if modo_actual == 1:                     # MANUAL (verde)
         if nuevo(Button.RIGHT):              # cambio de marcha
@@ -639,8 +689,7 @@ while True:
 
     elif modo_actual == 2:                   # EVASIÓN (naranja)
         if nuevo(Button.LEFT):
-            db.turn(aj("M2_ANGULO_EVASION"), wait=False)
-            girando = True
+            evadir()
         if nuevo(Button.RIGHT):
             accionar_arma()
 
@@ -658,13 +707,7 @@ while True:
 
     elif modo_actual == 4:                   # HACKER (azul)
         if nuevo(Button.LEFT) or nuevo(Button.RIGHT):
-            hack = "HACK_" + str(aj("M4_TIPO_HACK"))
-            print("OK lanzando", hack, "por el canal", CANAL_BROADCAST)
-            hub.ble.broadcast(hack)
-            hub.speaker.beep(2500, 200)
-            wait(300)                        # tiempo para que lo reciban
-            hub.ble.broadcast("ONLINE")
-            set_modo(1)                      # vuelve al verde
+            lanzar_hack()
 
     # 8. SALIDA A MOTORES
     if caido and not aj("OPERAR_TUMBADO"):
