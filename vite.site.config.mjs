@@ -1,4 +1,4 @@
-// Construye la web de Vercel: la portada y el banco de pruebas.
+// Construye la web de Vercel: la portada, el banco de pruebas y el modo combate.
 import { resolve } from 'node:path';
 import { defineConfig } from 'vite';
 
@@ -13,6 +13,7 @@ export default defineConfig({
             input: {
                 portada: resolve(raiz, 'index.html'),
                 banco: resolve(raiz, 'banco/index.html'),
+                combate: resolve(raiz, 'combate/index.html'),
             },
         },
     },

@@ -131,9 +131,30 @@ M3_VELOCIDAD_ESCANEO = 300     # ◄◄
 #    RANGO [0 … 1]   1 = pita · 0 = silencio
 M3_PITIDO_SONAR = 1            # ◄◄
 
-# 🔵 MODO 4 · HACKER ─ qué castigo envía a los robots cercanos
-#    RANGO [1 … 3]   1 = sacudida · 2 = baile · 3 = congelar 3 segundos
-M4_TIPO_HACK = 3               # ◄◄
+# 🔵 MODO 4 · HACKER ─ qué hackeo envía al rival
+#    RANGO [1 … 5]
+#    1 = niebla · 2 = barro · 3 = mando loco · 4 = arma dormida · 5 = congelado
+M4_TIPO_HACK = 5               # ◄◄
+
+
+# ┌─── 👾 NIVEL 5b · HACKEOS RECIBIDOS ─────────────────────────┐
+#    Cuánto dura cada hackeo cuando TE lo lanzan (milisegundos: 1000 = 1 segundo)
+
+# 🌫️ NIEBLA ─ tu radar no ve nada      RANGO [1000 … 5000] ms
+H_NIEBLA = 3000                # ◄◄
+
+# 🟤 BARRO ─ vas a media velocidad      RANGO [1000 … 5000] ms
+H_BARRO = 3000                 # ◄◄
+
+# 🔀 MANDO LOCO ─ el giro va al revés   RANGO [1000 … 5000] ms
+H_LOCO = 3000                  # ◄◄
+
+# 💤 ARMA DORMIDA ─ martillo o pala no funcionan   RANGO [1000 … 6000] ms
+H_ARMA = 4000                  # ◄◄
+
+# 🧊 CONGELADO ─ te quedas quieto del todo
+#    RANGO [500 … 3000] ms   ⚠ si dura mucho, el combate deja de ser divertido
+H_CONGELADO = 1500             # ◄◄
 
 
 # ┌─── 🔊 NIVEL 6 · PERSONALIDAD ───────────────────────────────┐
@@ -189,7 +210,12 @@ RANGOS = [
     ("M3_DISTANCIA_ATAQUE",   50, 500, "mm", "golpe automático (modo magenta)", False),
     ("M3_VELOCIDAD_ESCANEO",  50, 800, "deg/s", "giro al escanear (modo magenta)", False),
     ("M3_PITIDO_SONAR",       0, 1, "", "¿pita el radar?", False),
-    ("M4_TIPO_HACK",          1, 3, "", "1 = sacudida, 2 = baile, 3 = congelar", False),
+    ("M4_TIPO_HACK",          1, 5, "", "1 niebla, 2 barro, 3 mando loco, 4 arma dormida, 5 congelado", False),
+    ("H_NIEBLA",              1000, 5000, "ms", "duración de la niebla (radar ciego)", False),
+    ("H_BARRO",               1000, 5000, "ms", "duración del barro (media velocidad)", False),
+    ("H_LOCO",                1000, 5000, "ms", "duración del mando loco (giro al revés)", False),
+    ("H_ARMA",                1000, 6000, "ms", "duración del arma dormida", False),
+    ("H_CONGELADO",           500, 3000, "ms", "duración del congelado", False),
     ("VOLUMEN_GENERAL",       0, 10, "", "volumen del altavoz", False),
     ("PITIDO_INGENIERO",      0, 1, "", "¿pita al entrar en modo ingeniero?", False),
     ("SEGUNDOS_KO",           3, 20, "s", "cuenta atrás al volcar", False),
@@ -339,7 +365,7 @@ def ejecutar(orden):
         return
     cmd = partes[0]
     if cmd in ("AYUDA", "?"):
-        print("OK órdenes: GET | SET NOMBRE VALOR | SAVE | LOAD | RESET | DESC | TEL ON/OFF | GOLPE | MODO 1-4")
+        print("OK órdenes: GET | SET NOMBRE VALOR | SAVE | LOAD | RESET | DESC | TEL ON/OFF | GOLPE | MODO 1-4 | HACK 1-5 (probar un hackeo)")
         print("OK app: J avance giro (-100..100, se para si no llega otra en 0,5 s) | B1 golpe | B2 modo | B3 especial | B4 marcha")
     elif cmd == "GET":
         print("OK " + " ".join("{}={}".format(n, aj(n)) for n in NOMBRES))
@@ -377,7 +403,7 @@ def ejecutar(orden):
         telemetria = partes[1] == "ON"
         print("OK telemetría", "activada" if telemetria else "desactivada")
     elif cmd == "GOLPE":
-        accionar_arma(); print("OK arma")
+        print("OK arma" if efecto != 4 else "OK arma dormida: no golpea"); accionar_arma()
     elif cmd == "J" and len(partes) == 3:   # joystick de la app: sin respuesta, llega 10-20 veces/s
         try:
             app_avance = max(-100, min(100, int(partes[1])))
@@ -386,7 +412,7 @@ def ejecutar(orden):
         except ValueError:
             print("ERR J necesita dos números enteros")
     elif cmd == "B1":                        # botón GOLPE de la app
-        accionar_arma(); print("OK golpe")
+        print("OK golpe" if efecto != 4 else "OK arma dormida: no golpea"); accionar_arma()
     elif cmd == "B2":                        # botón MODO de la app
         set_modo(modo_actual % 4 + 1); print("OK modo", NOMBRES_MODO[modo_actual - 1])
     elif cmd == "B3":                        # botón ESPECIAL: depende del modo
@@ -400,6 +426,8 @@ def ejecutar(orden):
         marcha_actual = marcha_actual % 3 + 1
         hub.speaker.beep(500 + marcha_actual * 200, 100)
         print("OK marcha", marcha_actual)
+    elif cmd == "HACK" and len(partes) == 2 and partes[1] in ("1", "2", "3", "4", "5"):
+        recibir_hack(int(partes[1]))         # prueba: el robot se hackea a sí mismo
     elif cmd == "MODO" and len(partes) == 2 and partes[1] in ("1", "2", "3", "4"):
         set_modo(int(partes[1])); print("OK modo", NOMBRES_MODO[modo_actual - 1])
     else:
@@ -455,6 +483,9 @@ reloj_pala = StopWatch()
 def accionar_arma():
     """Lanza el ataque y vuelve enseguida al bucle (la vuelta a reposo es automática)."""
     global estado_pala
+    if efecto == 4:                          # 💤 ARMA DORMIDA: no hace nada
+        hub.speaker.beep(150, 80)
+        return
     if arma_motor:
         arma_motor.run_target(aj("VELOCIDAD_GOLPE"), aj("ANGULO_GOLPE"), wait=False)
     elif elevador_motor and estado_pala is None:
@@ -475,24 +506,42 @@ def vigilar_arma():
         pala_motor.run_target(aj("VELOCIDAD_PALA"), aj("SCOOP_READY_POS"), wait=False)
         estado_pala = None
 
-def recibir_hack(tipo_hack):
-    """Castigo recibido por Bluetooth (bloquea a propósito: es parte del juego)."""
-    hub.display.icon(Icon.SAD)
-    print("OK hackeado:", tipo_hack)
-    if tipo_hack == "HACK_1":                # SACUDIDA
-        for _ in range(6):
-            db.drive(0, 800); wait(150)
-            db.drive(0, -800); wait(150)
-    elif tipo_hack == "HACK_2":              # BAILE
-        db.turn(360, wait=False)
-        hub.speaker.play_notes(["C4/8", "E4/8", "G4/8", "C5/4"])
-        wait(1000)
-    elif tipo_hack == "HACK_3":              # CONGELADO 3 s
+# ==============================================================================
+# 👾 HACKEOS RECIBIDOS (no bloquean: el efecto dura unos segundos y se quita solo)
+# ==============================================================================
+# Código por Bluetooth -> número de hackeo: 1 niebla, 2 barro, 3 mando loco, 4 arma dormida, 5 congelado
+CODIGOS_HACK = {"HACK_1": 1, "HACK_2": 2, "HACK_3": 3, "HACK_4": 4, "HACK_5": 5}
+NOMBRES_HACK = ["", "niebla", "barro", "mando loco", "arma dormida", "congelado"]
+DURACION_HACK = ["", "H_NIEBLA", "H_BARRO", "H_LOCO", "H_ARMA", "H_CONGELADO"]
+DIBUJOS_HACK = [None,
+    Matrix([[50,0,50,0,50],[0,50,0,50,0],[50,0,50,0,50],[0,50,0,50,0],[50,0,50,0,50]]),            # niebla
+    Matrix([[0,0,0,0,0],[0,0,0,0,0],[0,40,0,40,0],[40,100,40,100,40],[100,100,100,100,100]]),    # barro
+    Matrix([[100,0,0,0,100],[0,100,0,100,0],[0,0,100,0,0],[0,100,0,100,0],[100,0,0,0,100]]),     # mando loco
+    Matrix([[100,100,100,0,0],[0,0,100,0,0],[0,100,0,0,0],[100,100,100,0,0],[0,0,0,0,0]]),       # arma dormida (Z)
+    Matrix([[100,0,100,0,100],[0,100,100,100,0],[100,100,100,100,100],[0,100,100,100,0],[100,0,100,0,100]]),  # congelado
+]
+efecto = 0                                   # 0 = sin hackeo; 1..5 = hackeo activo
+reloj_efecto = StopWatch()
+
+def recibir_hack(n):
+    """Activa el hackeo n durante su tiempo. El bucle principal aplica el efecto."""
+    global efecto
+    efecto = n
+    reloj_efecto.reset()
+    hub.display.icon(DIBUJOS_HACK[n])
+    hub.speaker.beep(300, 150)
+    if n == 5:
         db.stop()
-        hub.speaker.beep(200, 3000)
-        wait(3000)
-    db.stop()
-    set_modo(modo_actual)                    # restaurar pantalla y luces
+    print("OK hackeado:", NOMBRES_HACK[n], aj(DURACION_HACK[n]), "ms")
+
+def vigilar_efecto():
+    """Se llama en cada vuelta: quita el hackeo cuando se acaba su tiempo."""
+    global efecto
+    if efecto and reloj_efecto.time() > aj(DURACION_HACK[efecto]):
+        print("OK fin del hackeo:", NOMBRES_HACK[efecto])
+        efecto = 0
+        hub.speaker.beep(1500, 80)
+        set_modo(modo_actual)                # restaurar pantalla y luces
 
 def hay_borde():
     """Lee el sensor de suelo (siempre dentro del bucle)."""
@@ -559,6 +608,7 @@ marcha_actual = 1
 botones, antes = (), ()
 caido = False
 girando = False                              # True durante la evasión
+ultimo_bt = None                             # último mensaje Bluetooth oído
 posicion_normal = hub.imu.up()               # el robot arranca sobre sus ruedas
 hub.ble.broadcast("ONLINE")                  # limpiamos el canal al arrancar
 
@@ -610,6 +660,7 @@ set_modo(modo_actual)                         # respeta el modo elegido desde la
 while True:
     leer_consola()
     vigilar_arma()
+    vigilar_efecto()
 
     # 0. MODO INGENIERO (Bluetooth del hub mantenido 1,5 s)
     if Button.BLUETOOTH in hub.buttons.pressed():
@@ -657,9 +708,11 @@ while True:
 
     # 4. ESCUCHA DE HACKS MULTIJUGADOR
     mensaje_bt = hub.ble.observe(CANAL_BROADCAST)
-    if mensaje_bt in ("HACK_1", "HACK_2", "HACK_3"):
-        hub.ble.broadcast("ACK")
-        recibir_hack(mensaje_bt)
+    if mensaje_bt != ultimo_bt:              # solo cuando cambia: el mensaje se repite mientras se emite
+        ultimo_bt = mensaje_bt
+        if mensaje_bt in CODIGOS_HACK:
+            hub.ble.broadcast("ACK")
+            recibir_hack(CODIGOS_HACK[mensaje_bt])
 
     # 5. CAMBIO DE MODO (botón verde del mando)
     if nuevo(Button.CENTER):
@@ -695,6 +748,8 @@ while True:
 
     elif modo_actual == 3:                   # RADAR (magenta)
         distancia = sensor_ojos.distance()   # leer SIEMPRE dentro del bucle
+        if efecto == 1:
+            distancia = 2000                 # 🌫️ NIEBLA: el radar no ve nada
         ataque = aj("M3_DISTANCIA_ATAQUE")
         if aj("M3_PITIDO_SONAR") and ataque < distancia < 600:
             if crono_sonar.time() > distancia * 2:
@@ -709,8 +764,16 @@ while True:
         if nuevo(Button.LEFT) or nuevo(Button.RIGHT):
             lanzar_hack()
 
+    # 7b. EFECTOS DE HACKEO
+    if efecto == 2:                          # 🟤 BARRO: media velocidad
+        velocidad, giro = velocidad // 2, giro // 2
+    elif efecto == 3:                        # 🔀 MANDO LOCO: giro al revés
+        giro = -giro
+
     # 8. SALIDA A MOTORES
-    if caido and not aj("OPERAR_TUMBADO"):
+    if efecto == 5:                          # 🧊 CONGELADO: quieto del todo
+        db.stop()
+    elif caido and not aj("OPERAR_TUMBADO"):
         db.stop()
     elif girando and not db.done() and not (velocidad or giro):
         pass                                 # dejar terminar la evasión
@@ -722,8 +785,8 @@ while True:
     if telemetria and crono_tel.time() > 200:
         crono_tel.reset()
         arma = arma_motor.angle() if arma_motor else elevador_motor.angle()
-        print("T modo={} marcha={} dist={} arma={} caido={} mando={} vel={} giro={}".format(
+        print("T modo={} marcha={} dist={} arma={} caido={} mando={} vel={} giro={} hack={}".format(
             NOMBRES_MODO[modo_actual - 1], marcha_actual, sensor_ojos.distance(), arma,
-            int(caido), int(mando is not None), velocidad, giro))
+            int(caido), int(mando is not None), velocidad, giro, efecto))
 
     wait(10)

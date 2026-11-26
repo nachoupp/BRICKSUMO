@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="es">
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <title>BRICKSUMO · Modo combate</title>
+        <meta name="description" content="Marcador y radar del combate de sumo con dos robots Pybricks." />
+        <link rel="icon" href="../favicon.svg" type="image/svg+xml" />
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link
+            rel="stylesheet"
+            href="https://fonts.googleapis.com/css2?family=Darumadrop+One&family=Kosugi+Maru&family=M+PLUS+1+Code:wght@500;700&display=swap"
+        />
+        <link rel="stylesheet" href="./combate.css" />
+    </head>
+    <body>
+        <main class="dojo">
+            <p id="aviso-navegador" class="aviso" hidden>
+                Este navegador no tiene Web Bluetooth. Usa Chrome en un Chromebook, Windows, Mac o Android.
+            </p>
+
+            <!-- Marcador -->
+            <header class="hud">
+                <section class="placa azul" data-robot="azul" aria-label="Robot azul">
+                    <div class="placa-cab">
+                        <span class="nombre">1 · SUMO AZUL</span>
+                        <span class="info"><span data-campo="modo">—</span> · Marcha <span data-campo="marcha">—</span></span>
+                    </div>
+                    <div class="barra-cab"><span>VIDA</span><span class="pronto">llega en la capa 2</span></div>
+                    <div class="barra"><div class="relleno vida" style="width: 100%"></div></div>
+                    <div class="placa-pie">
+                        <span class="puntos" data-campo="puntos">PUNTOS 0</span>
+                        <span class="conexion" data-campo="conexion">Sin conectar</span>
+                        <button type="button" class="btn-conectar">Conectar azul</button>
+                    </div>
+                </section>
+
+                <div class="centro">
+                    <span class="kanji">相撲</span>
+                    <span class="asalto" id="estado-combate">PREPARADOS</span>
+                    <span class="reloj" id="reloj">2:00</span>
+                    <div class="marcador">
+                        <span class="m-azul" id="marcador-azul">0</span>
+                        <span class="guion">–</span>
+                        <span class="m-amarillo" id="marcador-amarillo">0</span>
+                    </div>
+                    <span class="regla">waza-ari ½ · ippon 1 · gana quien llega a 1</span>
+                </div>
+
+                <section class="placa amarillo" data-robot="amarillo" aria-label="Robot amarillo">
+                    <div class="placa-cab">
+                        <span class="info"><span data-campo="modo">—</span> · Marcha <span data-campo="marcha">—</span></span>
+                        <span class="nombre">SUMO AMARILLO · 2</span>
+                    </div>
+                    <div class="barra-cab"><span class="pronto">llega en la capa 2</span><span>VIDA</span></div>
+                    <div class="barra"><div class="relleno vida" style="width: 100%"></div></div>
+                    <div class="placa-pie">
+                        <button type="button" class="btn-conectar">Conectar amarillo</button>
+                        <span class="conexion" data-campo="conexion">Sin conectar</span>
+                        <span class="puntos" data-campo="puntos">PUNTOS 0</span>
+                    </div>
+                </section>
+            </header>
+
+            <!-- Escenario -->
+            <div class="escenario">
+                <section class="panel azul" data-robot="azul" aria-label="Datos en directo del robot azul">
+                    <h2>AZUL · EN DIRECTO</h2>
+                    <dl>
+                        <div><dt>RADAR</dt><dd data-campo="dist">—</dd></div>
+                        <div><dt>ARMA</dt><dd data-campo="arma">—</dd></div>
+                        <div><dt>VELOCIDAD</dt><dd data-campo="vel">—</dd></div>
+                        <div><dt>MANDO</dt><dd data-campo="mando">—</dd></div>
+                        <div><dt>VOLCADO</dt><dd data-campo="caido">—</dd></div>
+                        <div><dt>HACKEO</dt><dd data-campo="hack">—</dd></div>
+                    </dl>
+                    <p class="pronto">Aura y combo: capa 3</p>
+                    <button type="button" class="btn-arrancar secundario" hidden>Arrancar programa</button>
+                </section>
+
+                <div class="radar-caja">
+                    <div id="cartel" class="cartel" hidden></div>
+                    <svg id="radar" role="img" aria-label="Radar cenital del tatami con los dos robots" viewBox="110 0 500 420"></svg>
+                    <ul id="sucesos" class="sucesos" aria-live="polite"></ul>
+                </div>
+
+                <section class="panel amarillo" data-robot="amarillo" aria-label="Datos en directo del robot amarillo">
+                    <h2>AMARILLO · EN DIRECTO</h2>
+                    <dl>
+                        <div><dt>RADAR</dt><dd data-campo="dist">—</dd></div>
+                        <div><dt>ARMA</dt><dd data-campo="arma">—</dd></div>
+                        <div><dt>VELOCIDAD</dt><dd data-campo="vel">—</dd></div>
+                        <div><dt>MANDO</dt><dd data-campo="mando">—</dd></div>
+                        <div><dt>VOLCADO</dt><dd data-campo="caido">—</dd></div>
+                        <div><dt>HACKEO</dt><dd data-campo="hack">—</dd></div>
+                    </dl>
+                    <p class="pronto">Aura y combo: capa 3</p>
+                    <button type="button" class="btn-arrancar secundario" hidden>Arrancar programa</button>
+                </section>
+            </div>
+
+            <!-- Árbitro -->
+            <footer class="arbitro">
+                <span class="etq">ÁRBITRO</span>
+                <button type="button" id="hajime" class="principal">¡HAJIME!</button>
+                <button type="button" id="pausa" disabled>Pausa</button>
+                <button type="button" id="punto-azul">+½ azul</button>
+                <button type="button" id="punto-amarillo">+½ amarillo</button>
+                <button type="button" id="deshacer" disabled>Deshacer</button>
+                <button type="button" id="reiniciar">Reiniciar</button>
+                <label class="duracion">Duración
+                    <select id="duracion">
+                        <option value="60">1 min</option>
+                        <option value="120" selected>2 min</option>
+                        <option value="180">3 min</option>
+                    </select>
+                </label>
+                <span class="hueco"></span>
+                <a href="../">Portada</a>
+            </footer>
+
+            <details class="registro">
+                <summary>Registro de los robots</summary>
+                <div class="fila">
+                    <button type="button" id="copiar" class="secundario">Copiar registro</button>
+                    <button type="button" id="limpiar" class="secundario">Limpiar</button>
+                </div>
+                <pre id="registro"></pre>
+            </details>
+        </main>
+        <script type="module" src="./combate.js"></script>
+    </body>
+</html>
