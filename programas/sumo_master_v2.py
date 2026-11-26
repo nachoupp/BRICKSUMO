@@ -227,6 +227,7 @@ AJUSTES = {r[0]: [_consola[r[0]]] + list(r[1:]) for r in RANGOS}
 NOMBRES = [r[0] for r in RANGOS]           # orden fijo: el de la consola de arriba
 
 # Datos fijos del robot (no cambian en marcha)
+PROGRAMA        = "sumo_master_v2"  # nombre del programa: la app lo lee con VER
 DIAMETRO_RUEDA  = 56               # mm
 ANCHO_EJE       = 112              # mm (distancia entre centros de rueda): ¡mídelo en tu robot!
 CANAL_BROADCAST = 66               # canal Bluetooth del modo hacker (todos los robots igual)
@@ -365,7 +366,7 @@ def ejecutar(orden):
         return
     cmd = partes[0]
     if cmd in ("AYUDA", "?"):
-        print("OK órdenes: GET | SET NOMBRE VALOR | SAVE | LOAD | RESET | DESC | TEL ON/OFF | DAMESCRIPT | GOLPE | MODO 1-4 | HACK 1-5 (probar un hackeo)")
+        print("OK órdenes: GET | SET NOMBRE VALOR | SAVE | LOAD | RESET | DESC | TEL ON/OFF | VER | GOLPE | MODO 1-4 | HACK 1-5 (probar un hackeo)")
         print("OK app: J avance giro (-100..100, se para si no llega otra en 0,5 s) | B1 golpe | B2 modo | B3 especial | B4 marcha")
     elif cmd == "GET":
         print("OK " + " ".join("{}={}".format(n, aj(n)) for n in NOMBRES))
@@ -399,15 +400,8 @@ def ejecutar(orden):
             AJUSTES[n][0] = ORIGINALES[n]
         aplicar()
         print("OK valores del programa (escribe SAVE para guardarlos)")
-    elif cmd == "DAMESCRIPT":                # la página pide el código fuente de este programa
-        try:
-            with open(__file__, "r") as f:
-                print("SCRIPT", __file__)
-                for linea_fuente in f:
-                    print(linea_fuente.rstrip("\n"))
-                print("SCRIPTFIN")
-        except OSError:
-            print("ERR no puedo leer el script del hub")
+    elif cmd == "VER":                       # la app pregunta qué programa lleva el hub
+        print("OK ver", PROGRAMA, "tipo=" + str(TIPO))
     elif cmd == "TEL" and len(partes) == 2:
         telemetria = partes[1] == "ON"
         print("OK telemetría", "activada" if telemetria else "desactivada")

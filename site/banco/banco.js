@@ -3,15 +3,14 @@
 // envía el programa, lo ejecuta y ofrece una consola (stdin/stdout).
 // No guarda nada en el navegador.
 
-import { compile } from '@pybricks/mpy-cross-v6';
-import wasmUrl from '@pybricks/mpy-cross-v6/build/mpy-cross-v6.wasm?url';
 import {
     BlePybricksTransport,
     requestPybricksBleDevice,
 } from '../../src/adapters/ble-pybricks.ts';
 import { Status, hasStatus } from '../../src/protocol/ble-pybricks.ts';
-import { encodeMultiMpy6 } from '../../src/protocol/mpy.ts';
 import { HubSession } from '../../src/session/hub-session.ts';
+import { PROGRAMAS_REPO } from '../programas.js';
+import { subirPrograma } from '../subida.js';
 
 const $ = (id) => document.getElementById(id);
 const ui = {
@@ -22,6 +21,8 @@ const ui = {
     parar: $('parar'),
     progreso: $('progreso'),
     codigo: $('codigo'),
+    lista: $('lista-programas'),
+    cargar: $('cargar-programa'),
     salida: $('salida'),
     form: $('form-orden'),
     orden: $('orden'),
@@ -148,15 +149,6 @@ async function desconectar() {
 }
 
 // ---------- Compilar y enviar ----------
-async function compilar(codigo) {
-    const resultado = await compile('main.py', codigo, undefined, wasmUrl);
-    if (resultado.status !== 0 || !resultado.mpy) {
-        const mensaje = Array.isArray(resultado.err) ? resultado.err.join('\n') : String(resultado.err ?? '');
-        throw new Error(`El programa tiene errores:\n${mensaje}`);
-    }
-    return resultado.mpy;
-}
-
 async function enviar() {
     if (session === null) {
         return;
@@ -164,19 +156,12 @@ async function enviar() {
     ocupado = true;
     actualizarBotones();
     try {
-        ui.progreso.textContent = 'Compilando…';
-        const mpy = await compilar(ui.codigo.value);
-        // Pybricks espera el programa principal como módulo "__main__".
-        const paquete = encodeMultiMpy6([{ name: '__main__', bytecode: mpy }]);
-
-        // Si hay un programa en marcha, se para antes de enviar el nuevo.
-        if (ui.programa.textContent === 'En marcha') {
-            await session.stopProgram();
-        }
-
-        ui.progreso.textContent = 'Enviando…';
-        const resultado = await session.uploadProgram(paquete, {
-            onProgress: (p) => {
+        const resultado = await subirPrograma(session, ui.codigo.value, {
+            enMarcha: ui.programa.textContent === 'En marcha',
+            alEstado: (t) => {
+                ui.progreso.textContent = t;
+            },
+            alProgreso: (p) => {
                 ui.progreso.textContent = `Enviando… ${Math.round(p * 100)} %`;
             },
         });
@@ -208,6 +193,9 @@ async function mandarOrden(evento) {
         return;
     }
     ui.orden.value = '';
+    if (ui.programa.textContent !== 'En marcha') {
+        sistema('El programa no está en marcha: nadie responde a las órdenes. Pulsa «Enviar y ejecutar» y vuelve a probar.');
+    }
     // Sin eco local: el programa del hub repite la orden al recibirla ("> ...").
     const datos = encoder.encode(`${texto}\n`);
     // Cada envío tiene un tamaño máximo; se trocea por si la orden es larga.
@@ -233,6 +221,18 @@ if (!('bluetooth' in navigator)) {
     ui.form.addEventListener('submit', (e) => void mandarOrden(e));
     actualizarBotones();
 }
+// Programas del repo: se cargan en el cuadro de texto para revisarlos o tocarlos antes de enviar.
+for (const [i, p] of PROGRAMAS_REPO.entries()) {
+    ui.lista.append(new Option(p.nombre, String(i)));
+}
+ui.cargar.disabled = PROGRAMAS_REPO.length === 0;
+ui.cargar.addEventListener('click', () => {
+    const elegido = PROGRAMAS_REPO[Number(ui.lista.value)];
+    if (elegido) {
+        ui.codigo.value = elegido.texto;
+        sistema(`Cargado ${elegido.nombre} en el cuadro de texto. Pulsa «Enviar y ejecutar».`);
+    }
+});
 ui.limpiar.addEventListener('click', () => {
     ui.salida.textContent = '';
 });

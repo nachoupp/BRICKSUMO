@@ -41,7 +41,12 @@
 
             <section class="tarjeta" aria-labelledby="t-programa">
                 <h2 id="t-programa">2 · Programa</h2>
-                <label for="codigo">Pega aquí el programa Python (por ejemplo, sumo_master_v2.py)</label>
+                <div class="fila">
+                    <label for="lista-programas">Programa del repositorio</label>
+                    <select id="lista-programas"></select>
+                    <button id="cargar-programa" type="button" class="secundario">Cargar en el cuadro</button>
+                </div>
+                <label for="codigo">Programa Python que se enviará (también puedes pegar el tuyo)</label>
                 <textarea id="codigo" spellcheck="false" rows="14">from pybricks.hubs import PrimeHub
 from pybricks.tools import wait
 

@@ -22,7 +22,8 @@ button { min-height: 44px; padding: 0 18px; border-radius: 12px; border: 0; back
 button.secundario { background: transparent; color: var(--texto); border: 2px solid var(--borde); }
 button:disabled { opacity: 0.45; cursor: not-allowed; }
 label { color: var(--suave); font-size: 14px; }
-textarea, input { background: #0b0f1b; color: var(--texto); border: 1px solid var(--borde); border-radius: 10px; font: 14px/1.45 "JetBrains Mono", ui-monospace, monospace; padding: 10px; }
+textarea, input, select { background: #0b0f1b; color: var(--texto); border: 1px solid var(--borde); border-radius: 10px; font: 14px/1.45 "JetBrains Mono", ui-monospace, monospace; padding: 10px; }
+select { min-height: 44px; padding: 0 10px; font-family: Inter, system-ui, sans-serif; }
 textarea { width: 100%; box-sizing: border-box; resize: vertical; }
 input { flex: 1; min-width: 200px; min-height: 44px; box-sizing: border-box; }
 .salida { margin: 0; min-height: 200px; max-height: 360px; overflow: auto; background: #0b0f1b; border: 1px solid var(--borde); border-radius: 10px; padding: 10px; font: 13px/1.45 "JetBrains Mono", ui-monospace, monospace; white-space: pre-wrap; }
