@@ -159,7 +159,24 @@ function robotSvg(svg, x, y, rumbo, color, oscuro, etiqueta) {
 }
 
 // ---------- Mensajes de los robots ----------
-function alLinea(robot, linea) {
+function alLinea(robot, crudo) {
+    const linea = crudo.trim();
+    // Código fuente del hub (respuesta a DAMESCRIPT): se guarda con su sangría, no se vuelca al registro
+    if (robot.scriptLineas) {
+        if (linea === 'SCRIPTFIN') {
+            guardarScript(robot, robot.scriptLineas.join('\n') + '\n');
+            robot.scriptLineas = null;
+            registrar(robot, 'Script recibido del hub. Pulsa "Descargar script".');
+        } else {
+            robot.scriptLineas.push(crudo.replace(/\s+$/, ''));
+        }
+        return;
+    }
+    if (!linea) return;
+    if (linea.startsWith('SCRIPT ')) {
+        robot.scriptLineas = [];
+        return;
+    }
     if (linea.startsWith('T ')) {
         telemetria(robot, linea);
         return;
@@ -211,7 +228,8 @@ function alEvento(robot, evento) {
         const lineas = robot.pendiente.split(/\r?\n/);
         robot.pendiente = lineas.pop() ?? '';
         for (const l of lineas) {
-            if (l.trim()) alLinea(robot, l.trim());
+            // Pasamos la línea sin recortar: el código fuente necesita su sangría
+            if (robot.scriptLineas || l.trim()) alLinea(robot, l);
         }
     } else if (evento.type === 'status') {
         const enMarcha = hasStatus(evento.flags, Status.UserProgramRunning);
@@ -318,6 +336,28 @@ function alDesconectar(robot) {
     registrar(robot, 'Se ha desconectado.');
     suceso(robot.id, 'se ha desconectado');
     actualizarRobot(robot);
+}
+
+async function pedirScript(robot) {
+    if (!robot.session) {
+        registrar(robot, 'Conecta el robot antes de pedir el script.');
+        return;
+    }
+    try {
+        registrar(robot, 'Pidiendo el script al hub…');
+        await mandar(robot, 'DAMESCRIPT');
+    } catch (e) {
+        registrar(robot, `No se pudo pedir el script: ${e instanceof Error ? e.message : e}`);
+    }
+}
+
+function guardarScript(robot, texto) {
+    if (robot.scriptUrl) URL.revokeObjectURL(robot.scriptUrl);
+    robot.scriptUrl = URL.createObjectURL(new Blob([texto], { type: 'text/x-python' }));
+    const enlace = robot.panel.querySelector('.descargar-script');
+    enlace.href = robot.scriptUrl;
+    enlace.download = `hub_${robot.id}_script.py`;
+    enlace.hidden = false;
 }
 
 async function arrancar(robot) {
@@ -472,6 +512,13 @@ for (const robot of Object.values(robots)) {
         void (robot.session ? desconectar(robot) : conectar(robot));
     });
     robot.panel.querySelector('.btn-arrancar').addEventListener('click', () => void arrancar(robot));
+    // Script del hub: pedirlo, descargarlo (el enlace aparece al recibirlo)
+    const bloque = document.createElement('div');
+    bloque.className = 'script-hub';
+    bloque.innerHTML = '<button type="button" class="pedir-script secundario">Pedir script al hub</button> ' +
+        '<a class="descargar-script" hidden>Descargar script</a>';
+    robot.panel.appendChild(bloque);
+    bloque.querySelector('.pedir-script').addEventListener('click', () => void pedirScript(robot));
 }
 if (!('bluetooth' in navigator)) {
     $('aviso-navegador').hidden = false;
