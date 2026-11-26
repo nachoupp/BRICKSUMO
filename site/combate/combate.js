@@ -9,6 +9,8 @@ import {
 } from '../../src/adapters/ble-pybricks.ts';
 import { Status, hasStatus } from '../../src/protocol/ble-pybricks.ts';
 import { HubSession } from '../../src/session/hub-session.ts';
+import { PROGRAMAS_REPO } from '../programas.js';
+import { fijarAjuste, subirPrograma } from '../subida.js';
 
 const $ = (id) => document.getElementById(id);
 const SVG = 'http://www.w3.org/2000/svg';
@@ -29,6 +31,8 @@ function nuevoRobot(id) {
         decoder: new TextDecoder(),
         pendiente: '',
         hack: 0,
+        subiendo: false,
+        enviar: document.querySelector(`.enviar-robot[data-robot="${id}"]`),
         placa: document.querySelector(`.placa[data-robot="${id}"]`),
         panel: document.querySelector(`.panel[data-robot="${id}"]`),
     };
@@ -159,31 +163,17 @@ function robotSvg(svg, x, y, rumbo, color, oscuro, etiqueta) {
 }
 
 // ---------- Mensajes de los robots ----------
-function alLinea(robot, crudo) {
-    const linea = crudo.trim();
-    // Código fuente del hub (respuesta a DAMESCRIPT): se guarda con su sangría, no se vuelca al registro
-    if (robot.scriptLineas) {
-        if (linea === 'SCRIPTFIN') {
-            guardarScript(robot, robot.scriptLineas.join('\n') + '\n');
-            robot.scriptLineas = null;
-            registrar(robot, 'Script recibido del hub. Pulsa "Descargar script".');
-        } else {
-            robot.scriptLineas.push(crudo.replace(/\s+$/, ''));
-        }
-        return;
-    }
-    if (!linea) return;
-    if (linea.startsWith('SCRIPT ')) {
-        robot.scriptLineas = [];
-        return;
-    }
+function alLinea(robot, linea) {
     if (linea.startsWith('T ')) {
         telemetria(robot, linea);
         return;
     }
     registrar(robot, linea);
     let m;
-    if ((m = linea.match(/^OK hackeado: ([a-z ]+?) \d+ ms/))) {
+    if ((m = linea.match(/^OK ver (\S+) tipo=(\d)/))) {
+        const tipo = m[2] === '1' ? 'martillo' : m[2] === '2' ? 'elevador y pala' : `tipo ${m[2]}`;
+        ponerLleva(robot, `${m[1]} · ${tipo}`);
+    } else if ((m = linea.match(/^OK hackeado: ([a-z ]+?) \d+ ms/))) {
         suceso(robot.id, `recibe hackeo: ${m[1]}`);
         cartel(m[1].toUpperCase(), `hackeo a ${NOMBRE[robot.id]}`);
     } else if ((m = linea.match(/^OK lanzando HACK_(\d)/))) {
@@ -228,8 +218,7 @@ function alEvento(robot, evento) {
         const lineas = robot.pendiente.split(/\r?\n/);
         robot.pendiente = lineas.pop() ?? '';
         for (const l of lineas) {
-            // Pasamos la línea sin recortar: el código fuente necesita su sangría
-            if (robot.scriptLineas || l.trim()) alLinea(robot, l);
+            if (l.trim()) alLinea(robot, l.trim());
         }
     } else if (evento.type === 'status') {
         const enMarcha = hasStatus(evento.flags, Status.UserProgramRunning);
@@ -260,9 +249,10 @@ async function mandar(robot, texto) {
 async function activarTelemetria(robot) {
     if (!robot.session || !robot.enMarcha || robot.telActivada) return;
     try {
+        await mandar(robot, 'VER');                 // qué programa lleva el hub
         await mandar(robot, 'TEL ON');
         robot.telActivada = true;
-        registrar(robot, 'TEL ON enviado');
+        registrar(robot, 'VER y TEL ON enviados');
     } catch (e) {
         registrar(robot, `No se pudo activar la telemetría: ${e instanceof Error ? e.message : e}`);
     }
@@ -276,6 +266,9 @@ function actualizarRobot(robot) {
     boton.textContent = conectado ? 'Desconectar' : `Conectar ${robot.id}`;
     boton.disabled = robot.ocupado;
     arrancar.hidden = !conectado || robot.enMarcha;
+    const envio = robot.enviar?.querySelector('.enviar-script');
+    if (envio) envio.disabled = !conectado || robot.ocupado || robot.subiendo;
+    if (!conectado) ponerLleva(robot, '—');
     const nombre = robot.session?.info.name || robot.device?.name || 'hub';
     const estado = !conectado ? 'Sin conectar' : robot.enMarcha ? `${nombre} · en marcha` : `${nombre} · programa parado`;
     for (const e of campo(robot, 'conexion')) {
@@ -338,34 +331,144 @@ function alDesconectar(robot) {
     actualizarRobot(robot);
 }
 
-async function pedirScript(robot) {
-    if (!robot.session) {
-        registrar(robot, 'Conecta el robot antes de pedir el script.');
-        return;
-    }
-    try {
-        registrar(robot, 'Pidiendo el script al hub…');
-        await mandar(robot, 'DAMESCRIPT');
-    } catch (e) {
-        registrar(robot, `No se pudo pedir el script: ${e instanceof Error ? e.message : e}`);
-    }
-}
-
-function guardarScript(robot, texto) {
-    if (robot.scriptUrl) URL.revokeObjectURL(robot.scriptUrl);
-    robot.scriptUrl = URL.createObjectURL(new Blob([texto], { type: 'text/x-python' }));
-    const enlace = robot.panel.querySelector('.descargar-script');
-    enlace.href = robot.scriptUrl;
-    enlace.download = `hub_${robot.id}_script.py`;
-    enlace.hidden = false;
-}
-
 async function arrancar(robot) {
     try {
         await robot.session?.startProgram();
         registrar(robot, 'Programa arrancado.');
     } catch (e) {
         registrar(robot, `No se pudo arrancar: ${e instanceof Error ? e.message : e}`);
+    }
+}
+
+// ---------- Scripts: biblioteca, edición y envío ----------
+// Todo vive en memoria (sin almacenamiento del navegador): para conservar un script, Descargar.
+const biblioteca = PROGRAMAS_REPO.map((p) => ({ nombre: p.nombre, texto: p.texto }));
+const selScript = $('lista-scripts');
+
+function scriptElegido() {
+    return biblioteca[Number(selScript.value)] ?? null;
+}
+
+function pintarBiblioteca(elegir = selScript.value) {
+    selScript.replaceChildren(...biblioteca.map((p, i) => new Option(p.nombre, String(i))));
+    selScript.value = String(Math.min(Number(elegir) || 0, Math.max(0, biblioteca.length - 1)));
+    for (const id of ['editar-script', 'descargar-script', 'renombrar-script', 'duplicar-script', 'borrar-script']) {
+        $(id).disabled = biblioteca.length === 0;
+    }
+    for (const robot of Object.values(robots)) actualizarRobot(robot);
+}
+
+function nombreLibre(base) {
+    const limpio = base.trim().replace(/[\\/:*?"<>|]/g, '_');
+    const nombre = limpio.toLowerCase().endsWith('.py') ? limpio : `${limpio}.py`;
+    const raiz = nombre.slice(0, -3);
+    let candidato = nombre;
+    for (let n = 2; biblioteca.some((p) => p.nombre === candidato); n++) candidato = `${raiz} (${n}).py`;
+    return candidato;
+}
+
+function ponerLleva(robot, texto) {
+    const el = robot.enviar?.querySelector('.lleva');
+    if (el) el.textContent = `Lleva: ${texto}`;
+}
+
+function descargarScript() {
+    const p = scriptElegido();
+    if (!p) return;
+    const url = URL.createObjectURL(new Blob([p.texto], { type: 'text/x-python' }));
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = p.nombre;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+async function enviarScript(robot) {
+    const p = scriptElegido();
+    if (!p || !robot.session || robot.subiendo) return;
+    if (combate.estado === 'cuenta' || combate.estado === 'combate') {
+        registrar(robot, 'No se envía un script con el combate en marcha. Pausa o termina el combate.');
+        cartel('¡OJO!', 'Combate en marcha');
+        return;
+    }
+    const tipo = robot.enviar.querySelector('.tipo-robot').value;
+    const texto = tipo ? fijarAjuste(p.texto, 'TIPO_DE_BOT', tipo) : p.texto;
+    const progreso = robot.enviar.querySelector('.progreso');
+    robot.subiendo = true;
+    actualizarRobot(robot);
+    try {
+        registrar(robot, `Enviando ${p.nombre}${tipo ? ` (TIPO_DE_BOT = ${tipo})` : ''}…`);
+        const r = await subirPrograma(robot.session, texto, {
+            enMarcha: robot.enMarcha,
+            alEstado: (t) => { progreso.textContent = t; },
+            alProgreso: (x) => { progreso.textContent = `Enviando… ${Math.round(x * 100)} %`; },
+        });
+        progreso.textContent = '';
+        robot.telActivada = false;
+        registrar(robot, `${p.nombre} enviado (${r.bytes} bytes) y en marcha.`);
+        suceso(robot.id, `recibe ${p.nombre}`);
+        // El estado "en marcha" llega solo; este aviso cubre el caso de que no cambie.
+        setTimeout(() => void activarTelemetria(robot), 2500);
+    } catch (e) {
+        progreso.textContent = '';
+        registrar(robot, `No se pudo enviar: ${e instanceof Error ? e.message : e}`);
+        cartel('¡ERROR!', `No se envió a ${NOMBRE[robot.id]}`);
+    } finally {
+        robot.subiendo = false;
+        actualizarRobot(robot);
+    }
+}
+
+function iniciarScripts() {
+    pintarBiblioteca(0);
+    const editor = $('editor-script');
+    $('abrir-script').addEventListener('click', () => $('archivo-script').click());
+    $('archivo-script').addEventListener('change', async (e) => {
+        for (const f of e.target.files ?? []) {
+            biblioteca.push({ nombre: nombreLibre(f.name), texto: await f.text() });
+        }
+        e.target.value = '';
+        pintarBiblioteca(biblioteca.length - 1);
+    });
+    $('descargar-script').addEventListener('click', descargarScript);
+    $('duplicar-script').addEventListener('click', () => {
+        const p = scriptElegido();
+        if (!p) return;
+        biblioteca.push({ nombre: nombreLibre(p.nombre.replace(/\.py$/i, '') + ' (copia)'), texto: p.texto });
+        pintarBiblioteca(biblioteca.length - 1);
+    });
+    $('renombrar-script').addEventListener('click', () => {
+        const p = scriptElegido();
+        const nuevo = p && window.prompt('Nuevo nombre del script', p.nombre);
+        if (!p || !nuevo?.trim()) return;
+        const i = biblioteca.indexOf(p);
+        biblioteca.splice(i, 1);
+        p.nombre = nombreLibre(nuevo);
+        biblioteca.splice(i, 0, p);
+        pintarBiblioteca(i);
+    });
+    $('borrar-script').addEventListener('click', () => {
+        const p = scriptElegido();
+        if (!p || !window.confirm(`¿Quitar ${p.nombre} de la lista? (los del repositorio vuelven al recargar la página)`)) return;
+        const i = biblioteca.indexOf(p);
+        biblioteca.splice(i, 1);
+        pintarBiblioteca(i);
+    });
+    $('editar-script').addEventListener('click', () => {
+        const p = scriptElegido();
+        if (!p) return;
+        $('editor-nombre').textContent = p.nombre;
+        $('editor-texto').value = p.texto;
+        editor.showModal();
+    });
+    $('editor-guardar').addEventListener('click', () => {
+        const p = scriptElegido();
+        if (p) p.texto = $('editor-texto').value;
+        editor.close();
+    });
+    $('editor-cancelar').addEventListener('click', () => editor.close());
+    for (const robot of Object.values(robots)) {
+        robot.enviar.querySelector('.enviar-script').addEventListener('click', () => void enviarScript(robot));
     }
 }
 
@@ -512,14 +615,8 @@ for (const robot of Object.values(robots)) {
         void (robot.session ? desconectar(robot) : conectar(robot));
     });
     robot.panel.querySelector('.btn-arrancar').addEventListener('click', () => void arrancar(robot));
-    // Script del hub: pedirlo, descargarlo (el enlace aparece al recibirlo)
-    const bloque = document.createElement('div');
-    bloque.className = 'script-hub';
-    bloque.innerHTML = '<button type="button" class="pedir-script secundario">Pedir script al hub</button> ' +
-        '<a class="descargar-script" hidden>Descargar script</a>';
-    robot.panel.appendChild(bloque);
-    bloque.querySelector('.pedir-script').addEventListener('click', () => void pedirScript(robot));
 }
 if (!('bluetooth' in navigator)) {
     $('aviso-navegador').hidden = false;
 }
+iniciarScripts();

@@ -99,6 +99,53 @@
                 </section>
             </div>
 
+            <!-- Scripts -->
+            <details class="scripts" open>
+                <summary>SCRIPTS</summary>
+                <div class="fila">
+                    <select id="lista-scripts" aria-label="Script"></select>
+                    <button type="button" id="abrir-script" class="secundario">Abrir .py…</button>
+                    <input type="file" id="archivo-script" accept=".py,text/x-python" multiple hidden />
+                    <button type="button" id="editar-script" class="secundario">Editar</button>
+                    <button type="button" id="descargar-script" class="secundario">Descargar</button>
+                    <button type="button" id="renombrar-script" class="secundario">Renombrar</button>
+                    <button type="button" id="duplicar-script" class="secundario">Duplicar</button>
+                    <button type="button" id="borrar-script" class="secundario">Quitar</button>
+                </div>
+                <p class="nota">Los scripts viven solo en esta página: descarga los que quieras conservar. El hub no guarda el texto del programa, solo el compilado.</p>
+                <div class="enviar-robot azul" data-robot="azul">
+                    <span class="etq">AZUL</span>
+                    <span class="lleva">Lleva: —</span>
+                    <select class="tipo-robot" aria-label="Tipo de robot azul">
+                        <option value="">tipo: el del script</option>
+                        <option value="1">tipo 1 · martillo</option>
+                        <option value="2">tipo 2 · elevador y pala</option>
+                    </select>
+                    <button type="button" class="enviar-script" disabled>Enviar a AZUL</button>
+                    <span class="progreso" aria-live="polite"></span>
+                </div>
+                <div class="enviar-robot amarillo" data-robot="amarillo">
+                    <span class="etq">AMARILLO</span>
+                    <span class="lleva">Lleva: —</span>
+                    <select class="tipo-robot" aria-label="Tipo de robot amarillo">
+                        <option value="">tipo: el del script</option>
+                        <option value="1">tipo 1 · martillo</option>
+                        <option value="2">tipo 2 · elevador y pala</option>
+                    </select>
+                    <button type="button" class="enviar-script" disabled>Enviar a AMARILLO</button>
+                    <span class="progreso" aria-live="polite"></span>
+                </div>
+            </details>
+
+            <dialog id="editor-script" class="editor">
+                <h2>Editar <span id="editor-nombre"></span></h2>
+                <textarea id="editor-texto" spellcheck="false" rows="22"></textarea>
+                <div class="fila">
+                    <button type="button" id="editor-guardar" class="principal">Guardar cambios</button>
+                    <button type="button" id="editor-cancelar" class="secundario">Cancelar</button>
+                </div>
+            </dialog>
+
             <!-- Árbitro -->
             <footer class="arbitro">
                 <span class="etq">ÁRBITRO</span>

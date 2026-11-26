@@ -439,3 +439,71 @@ a {
         grid-template-columns: 1fr;
     }
 }
+
+/* ---------- Scripts ---------- */
+.scripts {
+    background: rgba(26, 15, 6, 0.55);
+    border: 2px solid var(--madera);
+    border-radius: 14px;
+    padding: 10px 14px;
+    margin: 10px 0;
+}
+.scripts summary {
+    font-family: var(--titulo);
+    letter-spacing: 2px;
+    cursor: pointer;
+}
+.scripts .fila,
+.enviar-robot,
+.editor .fila {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    flex-wrap: wrap;
+    margin-top: 10px;
+}
+.scripts .nota {
+    margin: 8px 0 0;
+    color: var(--suave);
+    font-size: 13px;
+}
+.enviar-robot .etq {
+    font-family: var(--titulo);
+    min-width: 92px;
+}
+.enviar-robot.azul .etq {
+    color: var(--azul-claro);
+}
+.enviar-robot.amarillo .etq {
+    color: var(--amarillo-claro);
+}
+.enviar-robot .lleva {
+    font-family: var(--numeros);
+    font-size: 13px;
+    color: var(--suave);
+    min-width: 220px;
+}
+.enviar-robot .progreso {
+    font-size: 13px;
+    color: var(--lima);
+}
+.editor {
+    width: min(920px, 94vw);
+    background: var(--oscuro);
+    color: var(--texto);
+    border: 3px solid var(--madera);
+    border-radius: 16px;
+}
+.editor::backdrop {
+    background: rgba(0, 0, 0, 0.7);
+}
+.editor textarea {
+    width: 100%;
+    box-sizing: border-box;
+    background: #0b0f1b;
+    color: var(--texto);
+    border: 1px solid var(--madera);
+    border-radius: 10px;
+    font: 13px/1.45 var(--numeros);
+    padding: 10px;
+}
