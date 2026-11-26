@@ -265,6 +265,9 @@ function actualizarRobot(robot) {
     const conectado = robot.session !== null;
     boton.textContent = conectado ? 'Desconectar' : `Conectar ${robot.id}`;
     boton.disabled = robot.ocupado;
+    const reconectar = robot.placa.querySelector('.btn-reconectar');
+    reconectar.hidden = conectado || robot.device === null;
+    reconectar.disabled = robot.ocupado;
     arrancar.hidden = !conectado || robot.enMarcha;
     const envio = robot.enviar?.querySelector('.enviar-script');
     if (envio) envio.disabled = !conectado || robot.ocupado || robot.subiendo;
@@ -278,11 +281,12 @@ function actualizarRobot(robot) {
     sprites[robot.id]?.classList.toggle('desconectado', !conectado);
 }
 
-async function conectar(robot) {
+async function conectar(robot, mismoHub = false) {
     robot.ocupado = true;
     actualizarRobot(robot);
     try {
-        const device = await requestPybricksBleDevice();
+        // «Reconectar» reutiliza el hub de antes sin volver a abrir el selector.
+        const device = mismoHub && robot.device ? robot.device : await requestPybricksBleDevice();
         if (device === null) return;
         const otro = robot.id === 'azul' ? robots.amarillo : robots.azul;
         if (otro.device && otro.device.id === device.id) {
@@ -615,6 +619,7 @@ for (const robot of Object.values(robots)) {
         void (robot.session ? desconectar(robot) : conectar(robot));
     });
     robot.panel.querySelector('.btn-arrancar').addEventListener('click', () => void arrancar(robot));
+    robot.placa.querySelector('.btn-reconectar').addEventListener('click', () => void conectar(robot, true));
 }
 if (!('bluetooth' in navigator)) {
     $('aviso-navegador').hidden = false;

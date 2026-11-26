@@ -16,6 +16,7 @@ const $ = (id) => document.getElementById(id);
 const ui = {
     aviso: $('aviso-navegador'),
     conectar: $('conectar'),
+    reconectar: $('reconectar'),
     desconectar: $('desconectar'),
     enviar: $('enviar'),
     parar: $('parar'),
@@ -66,6 +67,7 @@ function error(texto) {
 function actualizarBotones() {
     const conectado = session !== null;
     ui.conectar.disabled = conectado || ocupado;
+    ui.reconectar.disabled = conectado || ocupado || device === null;
     ui.desconectar.disabled = !conectado || ocupado;
     ui.enviar.disabled = !conectado || ocupado;
     ui.parar.disabled = !conectado;
@@ -102,11 +104,14 @@ function alDesconectar() {
 }
 
 // ---------- Conectar / desconectar ----------
-async function conectar() {
+async function conectar(mismoHub = false) {
     ocupado = true;
     actualizarBotones();
     try {
-        device = await requestPybricksBleDevice();
+        // «Reconectar» reutiliza el hub de antes sin volver a abrir el selector.
+        if (!(mismoHub && device !== null)) {
+            device = await requestPybricksBleDevice();
+        }
         if (device === null) {
             sistema('Conexión cancelada.');
             return;
@@ -215,6 +220,7 @@ if (!('bluetooth' in navigator)) {
     ui.conectar.disabled = true;
 } else {
     ui.conectar.addEventListener('click', () => void conectar());
+    ui.reconectar.addEventListener('click', () => void conectar(true));
     ui.desconectar.addEventListener('click', () => void desconectar());
     ui.enviar.addEventListener('click', () => void enviar());
     ui.parar.addEventListener('click', () => void parar());
